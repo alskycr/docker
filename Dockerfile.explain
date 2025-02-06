@@ -1,0 +1,86 @@
+# Dockerfile: A Beginner's Guide to Writing Dockerfiles
+# This is a comprehensive, step-by-step explanation of how Dockerfiles work, what each line does, and how to use them.
+
+# -----------------------------------------------
+# **1. Naming the File**
+# The Dockerfile **must** be named `Dockerfile` (with no extension) unless you specify a different name when building it.
+# The default name Docker expects is "Dockerfile," and placing it in the directory where you want to build your image is standard practice.
+# Example: If your `Dockerfile` is in `C:\myproject\`, then you should navigate to that directory before running the `docker build` command.
+# -----------------------------------------------
+
+# -----------------------------------------------
+# **2. Defining the Base Image**
+# `FROM` is the first required instruction in a Dockerfile. It tells Docker which base image to start from.
+# This image contains an existing operating system (Ubuntu in this case) and some pre-installed tools.
+# The `latest` tag pulls the most up-to-date version of Ubuntu.
+# -----------------------------------------------
+    FROM ubuntu:latest
+
+    # -----------------------------------------------
+    # **3. Installing Software**
+    # The `RUN` command executes shell commands inside the container when it's being built.
+    # Each `RUN` command creates a new layer in the image. We use `&&` to chain commands together in a single `RUN` instruction
+    # to keep the number of layers low, which optimizes the image size.
+    #
+    # What this does:
+    # - `apt update`: Refreshes the package list so the latest versions can be installed.
+    # - `apt install -y wget unzip`: Installs `wget` (for downloading files) and `unzip` (for extracting files).
+    # - `wget -O terraform.zip ...`: Downloads the Terraform binary from the official HashiCorp releases.
+    # - `unzip terraform.zip`: Extracts Terraform.
+    # - `mv terraform /usr/local/bin/`: Moves Terraform to a system-wide location (`/usr/local/bin/`) so it can be used from anywhere.
+    # - `rm terraform.zip`: Deletes the Terraform archive to save space.
+    # - `mkdir -p /opt/mydir`: Creates a directory `/opt/mydir` (ensuring it exists, using `-p`).
+    # - `echo "Container Setup Complete" > /opt/mydir/testfile.txt`: Writes a message to a file inside the container.
+    # -----------------------------------------------
+    RUN apt update && apt install -y wget unzip \ 
+        && wget -O terraform.zip https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip \ 
+        && unzip terraform.zip && mv terraform /usr/local/bin/ \ 
+        && rm terraform.zip && mkdir -p /opt/mydir \ 
+        && echo "Container Setup Complete" > /opt/mydir/testfile.txt
+    
+    # -----------------------------------------------
+    # **4. Setting the Working Directory**
+    # `WORKDIR` defines the default directory where commands inside the container will run.
+    # It's like using `cd /opt/mydir` before running any container commands.
+    # Any command executed inside the container will start in this directory.
+    # -----------------------------------------------
+    WORKDIR /opt/mydir
+    
+    # -----------------------------------------------
+    # **5. Setting the Default Command**
+    # `ENTRYPOINT` defines what command runs when the container starts.
+    # - Here, we set `/bin/bash`, which means the container will launch a shell when run interactively.
+    # - This is useful when we want to enter the container and manually run commands.
+    # -----------------------------------------------
+    ENTRYPOINT ["/bin/bash"]
+    
+    # -----------------------------------------------
+    # **6. Building and Running the Image**
+    # To create and use this Docker image, follow these steps:
+    #
+    # **Step 1: Build the Image**
+    # The following command builds the image and tags it as `my_terraform_image`:
+    # docker build -t my_terraform_image -f Dockerfile .
+    #
+    # **Step 2: Run the Container**
+    # This command starts a new container from the image:
+    # docker run -it --rm my_terraform_image
+    #
+    # **Explanation of `docker run` options:**
+    # - `-it` -> Interactive mode with a terminal.
+    # - `--rm` -> Automatically removes the container when it stops.
+    # - `my_terraform_image` -> Name of the image to run.
+    #
+    # **Expected Behavior After Running:**
+    # - The container will open an interactive bash shell.
+    # - Terraform will be installed.
+    # - A file (`testfile.txt`) will exist in `/opt/mydir/`, containing "Container Setup Complete".
+    # -----------------------------------------------
+    
+    # **Summary:**
+    # - This Dockerfile creates an image based on Ubuntu.
+    # - It installs Terraform and necessary dependencies.
+    # - It sets up a working directory and a test file.
+    # - It launches a bash shell when the container is run.
+    # - The image can be built and used with simple `docker build` and `docker run` commands.
+    
